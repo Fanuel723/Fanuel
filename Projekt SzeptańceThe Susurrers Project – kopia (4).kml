@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Projekt Szeptańce/The Susurrers Project – kopia</name>
+    <description>Mapa dla tych, którzy nie boją się podążyć śladem Szeptów. Znajdziecie tutaj duchy, bestie, anioły i demony, świętych i wszeteczników - Znanych i nieznanych, a przede wszystkim tych wszystkich o których pamięć się już zaciera... </description>
+    <NetworkLink>
+      <name>Projekt Szeptańce/The Susurrers Project – kopia</name>
+      <Link>
+        <href><![CDATA[https://www.google.com/maps/d/u/0/kml?forcekml=1&mid=1YKUqKVaWokfhH2u7pThS7ABv8xaIwnL8]]></href>
+      </Link>
+    </NetworkLink>
+  </Document>
+</kml>
