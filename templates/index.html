@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Scenariuszy Gier LARP</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        h1 { text-align: center; }
+        #generator-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            color: #fff;
+            background-color: #3498db;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background-color 0.3s;
+        }
+        #generator-btn:hover {
+            background-color: #2980b9;
+        }
+        .scenario-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        .scenario-section {
+            margin-bottom: 20px;
+        }
+        .scenario-section h3 {
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        li {
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-radius: 3px;
+            margin-bottom: 10px;
+        }
+        li strong {
+            color: #2980b9;
+        }
+        #map-container {
+            height: 400px;
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin-top: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #7f8c8d;
+        }
+        #map-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        #image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .dropbox-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .flash-messages {
+            list-style-type: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+        .flash-messages li {
+            padding: 15px;
+            border-radius: 5px;
+            color: #fff;
+        }
+        .flash-messages .success { background-color: #2ecc71; }
+        .flash-messages .error { background-color: #e74c3c; }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generator Scenariuszy Gier LARP</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flash-messages">
+        {% for category, message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <button id="generator-btn">Generuj Nowy Scenariusz</button>
+
+    <div id="scenario" class="scenario-container" style="display: none;">
+        <div class="scenario-section">
+            <h2 id="scenario-title"></h2>
+        </div>
+        <div class="scenario-section">
+            <h3>Kontekst Fabularny</h3>
+            <p id="scenario-context"></p>
+        </div>
+        <div class="scenario-section">
+            <h3>Proponowane Role</h3>
+            <ul id="scenario-roles"></ul>
+        </div>
+        <div class="scenario-section">
+            <h3>Zarys Konfliktu</h3>
+            <p id="scenario-conflict"></p>
+        </div>
+        <div class="scenario-section">
+            <h3>Cele Dramy</h3>
+            <p id="scenario-goals"></p>
+        </div>
+        <div class="scenario-section">
+            <h3>Materiały Wizualne</h3>
+            <div id="image-container"></div>
+        </div>
+        <div class="scenario-section">
+            <h3>Lokalizacja</h3>
+            <div id="map-container">
+                <p>Mapa pojawi się tutaj po wygenerowaniu scenariusza.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="dropbox-section" id="dropbox-upload-section" style="display: none;">
+        <h3>Dodaj własne materiały do scenariusza</h3>
+        {% if dropbox_configured %}
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="scenario_name" id="dropbox-scenario-name">
+            <input type="file" name="file" required>
+            <button type="submit">Wyślij na Dropbox</button>
+        </form>
+        {% else %}
+        <p><strong>Integracja z Dropbox nie jest skonfigurowana.</strong><br>Aby włączyć przesyłanie plików, administrator musi ustawić zmienną środowiskową DROPBOX_ACCESS_TOKEN.</p>
+        {% endif %}
+    </div>
+
+    <footer>
+        <p>Projekt Szeptańce &copy; 2025</p>
+    </footer>
+
+    <script>
+        const MAPS_CONFIGURED = {{ maps_configured|tojson }};
+        const GOOGLE_MAPS_API_KEY = {{ google_maps_api_key|tojson }};
+
+        document.getElementById('generator-btn').addEventListener('click', () => {
+            fetch('/api/scenario')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+
+                    const scenarioDiv = document.getElementById('scenario');
+                    const details = data.scenario_details;
+                    const scenarioName = data.name;
+
+                    document.getElementById('scenario-title').textContent = details['Tytuł Scenariusza'];
+                    document.getElementById('scenario-context').textContent = details['Kontekst Fabularny'];
+                    document.getElementById('scenario-conflict').textContent = details['Zarys Konfliktu'];
+                    document.getElementById('scenario-goals').textContent = details['Cele Dramy'];
+
+                    document.getElementById('dropbox-scenario-name').value = scenarioName;
+
+                    const rolesList = document.getElementById('scenario-roles');
+                    rolesList.innerHTML = '';
+                    details['Proponowane Role'].forEach(role => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<strong>${role.role}:</strong> ${role.description}`;
+                        rolesList.appendChild(li);
+                    });
+
+                    const imageContainer = document.getElementById('image-container');
+                    imageContainer.innerHTML = '';
+                    if (data.image_url) {
+                        const img = document.createElement('img');
+                        img.src = data.image_url;
+                        img.alt = `Zdjęcie dla ${data.name}`;
+                        imageContainer.appendChild(img);
+                    } else {
+                        imageContainer.innerHTML = '<p>Brak dostępnych materiałów wizualnych dla tej lokalizacji.</p>';
+                    }
+
+                    const mapContainer = document.getElementById('map-container');
+                    if (MAPS_CONFIGURED) {
+                        const [lon, lat] = data.coordinates;
+                        const mapUrl = `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${lat},${lon}&zoom=17`;
+                        mapContainer.innerHTML = `<iframe src="${mapUrl}" allowfullscreen></iframe>`;
+                    } else {
+                        mapContainer.innerHTML = '<p>Integracja z Google Maps nie jest skonfigurowana. Administrator musi ustawić zmienną środowiskową GOOGLE_MAPS_API_KEY.</p>';
+                    }
+
+                    scenarioDiv.style.display = 'block';
+                    document.getElementById('dropbox-upload-section').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Błąd podczas pobierania scenariusza:', error);
+                    alert('Nie udało się załadować scenariusza. Spróbuj ponownie.');
+                });
+        });
+    </script>
+</body>
+</html>
